@@ -78,6 +78,7 @@ const char     CRYPTONOTE_BLOCKCHAIN_INDICES_FILENAME[]      = "blockchainindice
 const char     MINER_CONFIG_FILE_NAME[]                      = "miner_conf.json";
 } // parameters
 
+const uint64_t BLOCK_REWARD_GENESIS                          = (UINT64_C(1830000000) * parameters::COIN);
 const uint64_t START_BLOCK_REWARD                            = (UINT64_C(1000) * parameters::COIN);
 const uint64_t MIN_BLOCK_REWARD								 = (UINT64_C(200) * parameters::COIN);
 const uint64_t BLOCK_REWARD_LOSS                             = (UINT64_C(100) * parameters::COIN);

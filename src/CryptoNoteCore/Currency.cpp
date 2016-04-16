@@ -17,6 +17,7 @@
 #include "CryptoNoteTools.h"
 #include "TransactionExtra.h"
 #include "UpgradeDetector.h"
+#include "Miner.h"
 
 #undef ERROR
 
@@ -71,6 +72,57 @@ bool Currency::init() {
   return true;
 }
 
+#if 1
+bool Currency::generateGenesisBlock() {
+	m_genesisBlock = boost::value_initialized<Block>();
+	std::string genesisCoinbaseTxHex;
+
+	CryptoNote::Transaction tx;
+	CryptoNote::AccountPublicAddress ac = boost::value_initialized<CryptoNote::AccountPublicAddress>();
+	if (parseAccountAddressString("D4hdYVBDqSp7JNUXuf8myuAMrgGJ9Rj8KjPbdZpDN7exPDYtaNswQjH9UdHPxrBwYRXRENQysBb6ALYuwzwziZdgF7wnMdH", ac) == false)
+	{
+		logger(ERROR, BRIGHT_RED) << "failed to parse account address from specific DNC address.";
+		return false;
+	}
+	if (constructMinerTx(0, 0, 0, 0, 0, ac, m_genesisBlock.baseTransaction) == false) // zero fee in genesis
+	{
+		logger(ERROR, BRIGHT_RED) << "failed to construct miner tx of Genesis block.";
+		return false;
+	}
+	auto it = m_genesisBlock.baseTransaction.outputs.begin();
+	it->amount = BLOCK_REWARD_GENESIS;
+	TransactionOutput txout = *it;
+	m_genesisBlock.baseTransaction.outputs.erase(it);
+	m_genesisBlock.baseTransaction.outputs.push_back(txout);
+
+	/*
+	// Hard code coinbase tx in genesis block, because "tru" generating tx use random, but genesis should be always the same
+	genesisCoinbaseTxHex = GENESIS_COINBASE_TX_HEX;
+	BinaryArray minerTxBlob;
+
+	bool r =
+	fromHex(genesisCoinbaseTxHex, minerTxBlob) &&
+	fromBinaryArray(m_genesisBlock.baseTransaction, minerTxBlob);
+
+	if (!r) {
+	logger(ERROR, BRIGHT_RED) << "failed to parse coinbase tx from hard coded blob";
+	return false;
+	}
+	*/
+	m_genesisBlock.majorVersion = BLOCK_MAJOR_VERSION_1;
+	m_genesisBlock.minorVersion = BLOCK_MINOR_VERSION_0;
+	m_genesisBlock.timestamp = 0;
+	m_genesisBlock.nonce = GENESIS_NONCE;
+	if (m_testnet) {
+		++m_genesisBlock.nonce;
+	}
+	Crypto::cn_context context;
+	difficulty_type diffic = 1;
+	miner::find_nonce_for_given_block(context, m_genesisBlock, diffic);
+
+	return true;
+}
+#else
 bool Currency::generateGenesisBlock() {
   m_genesisBlock = boost::value_initialized<Block>();
 
@@ -116,9 +168,14 @@ bool Currency::generateGenesisBlock() {
 
   return true;
 }
+#endif
 
 uint64_t Currency::baseRewardFunction(uint64_t alreadyGeneratedCoins, uint32_t height) const {
-	uint64_t base_reward = START_BLOCK_REWARD - (static_cast<uint64_t>(height) / REWARD_CHANGING_INTERVAL) * BLOCK_REWARD_LOSS;
+	uint64_t base_reward = 0;
+	if (height == 0)
+		base_reward = BLOCK_REWARD_GENESIS;
+	else
+		base_reward = START_BLOCK_REWARD - (static_cast<uint64_t>(height) / REWARD_CHANGING_INTERVAL) * BLOCK_REWARD_LOSS;
   base_reward = (std::max)(base_reward, MIN_BLOCK_REWARD);
   base_reward = (std::min)(base_reward, m_moneySupply - alreadyGeneratedCoins);
   return base_reward;
