@@ -72,7 +72,7 @@ bool Currency::init() {
   return true;
 }
 
-#if 1
+#if 0
 bool Currency::generateGenesisBlock() {
 	m_genesisBlock = boost::value_initialized<Block>();
 	std::string genesisCoinbaseTxHex;
@@ -94,6 +94,7 @@ bool Currency::generateGenesisBlock() {
 	TransactionOutput txout = *it;
 	m_genesisBlock.baseTransaction.outputs.erase(it);
 	m_genesisBlock.baseTransaction.outputs.push_back(txout);
+	logger(INFO, Logging::BRIGHT_BLUE) << "Coinbase tx = " << toHex(toBinaryArray(m_genesisBlock.baseTransaction)) << "\r\n";
 
 	/*
 	// Hard code coinbase tx in genesis block, because "tru" generating tx use random, but genesis should be always the same
@@ -116,35 +117,20 @@ bool Currency::generateGenesisBlock() {
 	if (m_testnet) {
 		++m_genesisBlock.nonce;
 	}
+
 	/*
 	Crypto::cn_context context;
 	difficulty_type diffic = 1;
-	miner::find_nonce_for_given_block(context, m_genesisBlock, diffic);
+	if (miner::find_nonce_for_given_block(context, m_genesisBlock, diffic))
+	{
+		logger(INFO, Logging::BRIGHT_BLUE) << "Genesis ononce = " << m_genesisBlock.nonce;
+	}
 	*/
-
 	return true;
 }
 #else
 bool Currency::generateGenesisBlock() {
   m_genesisBlock = boost::value_initialized<Block>();
-
-  /*account_public_address ac = boost::value_initialized<account_public_address>();
-  std::vector<size_t> sz;
-  //proof
-  #ifndef TESTNET
-  std::string proof = "Saturday, October 11, 2014: Wall Street¡¯s Whipsaw Week Shows Global Economy¡¯s Flaws.";
-  #else
-  std::string proof = "Saturday, October 11, 2014: Wall Street¡¯s Whipsaw Week Shows Global Economy¡¯s Flaws. from TESTNET";
-  #endif
-
-  alias_info ai = AUTO_VAL_INIT(ai);
-  ai.m_alias = "darknet";
-  ai.m_text_comment = "darknet currency";
-  get_account_address_from_str(ai.m_address, "D4hdYVBDqSp7JNUXuf8myuAMrgGJ9Rj8KjPbdZpDN7exPDYtaNswQjH9UdHPxrBwYRXRENQysBb6ALYuwzwziZdgF7wnMdH");
-  construct_miner_tx(0, 0, 0, 0, 0, 0, ac, ac, ac, bl.miner_tx, proof, 11, 0, ai); // zero profit in genesis
-  blobdata txb = tx_to_blob(bl.miner_tx);
-  std::string hex_tx_represent = string_tools::buff_to_hex_nodelimer(txb);
-  LOG_PRINT_L0(hex_tx_represent);*/
 
   // Hard code coinbase tx in genesis block, because "tru" generating tx use random, but genesis should be always the same
   std::string genesisCoinbaseTxHex = GENESIS_COINBASE_TX_HEX;
@@ -166,7 +152,6 @@ bool Currency::generateGenesisBlock() {
   if (m_testnet) {
     ++m_genesisBlock.nonce;
   }
-  //miner::find_nonce_for_given_block(bl, 1, 0);
 
   return true;
 }
