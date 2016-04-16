@@ -116,9 +116,11 @@ bool Currency::generateGenesisBlock() {
 	if (m_testnet) {
 		++m_genesisBlock.nonce;
 	}
+	/*
 	Crypto::cn_context context;
 	difficulty_type diffic = 1;
 	miner::find_nonce_for_given_block(context, m_genesisBlock, diffic);
+	*/
 
 	return true;
 }
