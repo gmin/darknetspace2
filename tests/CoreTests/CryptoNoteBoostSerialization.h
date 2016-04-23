@@ -55,6 +55,36 @@ namespace boost
     a & reinterpret_cast<char (&)[sizeof(Crypto::Hash)]>(x);
   }
   
+  template <class Archive>
+  inline void serialize(Archive &a, Crypto::TimeString &x, const boost::serialization::version_type ver)
+  {
+	  a & reinterpret_cast<char(&)[sizeof(Crypto::TimeString)]>(x);
+  }
+
+  template <class Archive>
+  inline void serialize(Archive &a, Crypto::BufSpendPKey &x, const boost::serialization::version_type ver)
+  {
+	  a & reinterpret_cast<char(&)[sizeof(Crypto::BufSpendPKey)]>(x);
+  }
+
+  template <class Archive>
+  inline void serialize(Archive &a, Crypto::BufViewPKey &x, const boost::serialization::version_type ver)
+  {
+	  a & reinterpret_cast<char(&)[sizeof(Crypto::BufViewPKey)]>(x);
+  }
+
+  template <class Archive>
+  inline void serialize(Archive &a, Crypto::BufSpendSKey &x, const boost::serialization::version_type ver)
+  {
+	  a & reinterpret_cast<char(&)[sizeof(Crypto::BufSpendSKey)]>(x);
+  }
+
+  template <class Archive>
+  inline void serialize(Archive &a, Crypto::BufViewSKey &x, const boost::serialization::version_type ver)
+  {
+	  a & reinterpret_cast<char(&)[sizeof(Crypto::BufViewSKey)]>(x);
+  }
+
   template <class Archive> void serialize(Archive& archive, CryptoNote::MultisignatureInput &output, unsigned int version) {
     archive & output.amount;
     archive & output.signatureCount;

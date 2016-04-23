@@ -166,6 +166,25 @@ bool serialize(EllipticCurvePoint& ecPoint, Common::StringView name, CryptoNote:
   return serializePod(ecPoint, name, serializer);
 }
 
+bool serialize(TimeString& TimeStr, Common::StringView name, CryptoNote::ISerializer& serializer) {
+	return serializePod(TimeStr, name, serializer);
+}
+
+bool serialize(BufSpendPKey& BufSPKey, Common::StringView name, CryptoNote::ISerializer& serializer) {
+	return serializePod(BufSPKey, name, serializer);
+}
+
+bool serialize(BufViewPKey& BufVPKey, Common::StringView name, CryptoNote::ISerializer& serializer) {
+	return serializePod(BufVPKey, name, serializer);
+}
+bool serialize(BufSpendSKey& BufSSKey, Common::StringView name, CryptoNote::ISerializer& serializer) {
+	return serializePod(BufSSKey, name, serializer);
+}
+
+bool serialize(BufViewSKey& BufVSKey, Common::StringView name, CryptoNote::ISerializer& serializer) {
+	return serializePod(BufVSKey, name, serializer);
+}
+
 }
 
 namespace CryptoNote {

@@ -16,6 +16,14 @@ class ISerializer;
 //This is DTO structure. Do not change it.
 struct KeysStorage {
   uint64_t creationTimestamp;
+  uint8_t  m_wallet_version = 2;
+
+  Crypto::TimeString TimeString;
+  Crypto::PublicKey m_buf;
+  Crypto::BufSpendPKey BufSPKey;
+  Crypto::BufViewPKey  BufVPKey;
+  Crypto::BufSpendSKey BufSVKey;
+  Crypto::BufViewSKey  BufVSKey;
 
   Crypto::PublicKey spendPublicKey;
   Crypto::SecretKey spendSecretKey;

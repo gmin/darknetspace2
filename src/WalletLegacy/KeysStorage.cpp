@@ -12,18 +12,30 @@
 
 namespace CryptoNote {
 
-void KeysStorage::serialize(ISerializer& serializer, const std::string& name) {
-  serializer.beginObject(name);
-
-  serializer(creationTimestamp, "creation_timestamp");
-
-  serializer(spendPublicKey, "spend_public_key");
-  serializer(spendSecretKey, "spend_secret_key");
-
-  serializer(viewPublicKey, "view_public_key");
-  serializer(viewSecretKey, "view_secret_key");
-
-  serializer.endObject();
-}
-
+	void KeysStorage::serialize(ISerializer& serializer, const std::string& name) {
+		serializer.beginObject(name);
+		if (m_wallet_version == 2)
+		{
+			serializer(creationTimestamp, "creation_timestamp");
+			serializer(spendPublicKey, "spend_public_key");
+			serializer(spendSecretKey, "spend_secret_key");
+			serializer(viewPublicKey, "view_public_key");
+			serializer(viewSecretKey, "view_secret_key");
+		}
+		else {
+			serializer(m_buf, "m_buf");
+			serializer(TimeString, "TimeString");
+			memcpy(&creationTimestamp, &TimeString, 8);
+			serializer(BufSPKey, "BufSPKey");
+			serializer(spendPublicKey, "spend_public_key");
+			serializer(BufVPKey, "BufVPKey");
+			serializer(viewPublicKey, "view_public_key");
+			serializer(BufSVKey, "BufSVKey");
+			serializer(spendSecretKey, "spend_secret_key");
+			serializer(BufVSKey, "BufVSKey");
+			serializer(viewSecretKey, "view_secret_key");
+		}
+		
+		serializer.endObject();
+	}
 }

@@ -45,7 +45,8 @@ public:
   virtual void removeObserver(IWalletLegacyObserver* observer) override;
 
   virtual void initAndGenerate(const std::string& password) override;
-  virtual void initAndLoad(std::istream& source, const std::string& password) override;
+  virtual void initAndGenerate(const std::string& password, CryptoNote::AccountKeys &oldKeys) override;
+  virtual void initAndLoad(std::istream& source, const std::string& password, uint8_t version = 2) override;
   virtual void initWithKeys(const AccountKeys& accountKeys, const std::string& password) override;
   virtual void shutdown() override;
   virtual void reset() override;
@@ -142,6 +143,7 @@ private:
   std::mutex m_cacheMutex;
   CryptoNote::AccountBase m_account;
   std::string m_password;
+  uint8_t   m_wallet_version;
   const CryptoNote::Currency& m_currency;
   INode& m_node;
   bool m_isStopping;

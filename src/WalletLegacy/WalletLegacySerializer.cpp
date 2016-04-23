@@ -39,9 +39,10 @@ void throwIfKeysMissmatch(const Crypto::SecretKey& sec, const Crypto::PublicKey&
 
 namespace CryptoNote {
 
-WalletLegacySerializer::WalletLegacySerializer(CryptoNote::AccountBase& account, WalletUserTransactionsCache& transactionsCache) :
+	WalletLegacySerializer::WalletLegacySerializer(CryptoNote::AccountBase& account, WalletUserTransactionsCache& transactionsCache, uint8_t version) :
   account(account),
   transactionsCache(transactionsCache),
+  m_wallet_version(version),
   walletSerializationVersion(WALLET_SERIALIZATION_VERSION)
 {
 }
@@ -110,11 +111,17 @@ void WalletLegacySerializer::deserialize(std::istream& stream, const std::string
 
   serializerEncrypted.beginObject("wallet");
 
-  uint32_t version;
-  serializerEncrypted(version, "version");
-
+  uint32_t version; 
   Crypto::chacha_iv iv;
-  serializerEncrypted(iv, "iv");
+
+  if (m_wallet_version == 2) {
+	  serializerEncrypted(version, "version");
+	  serializerEncrypted(iv, "iv");
+  }
+  else {
+	  serializerEncrypted(iv, "iv");
+	  version = 2;
+  }
 
   std::string cipher;
   serializerEncrypted(cipher, "data");
@@ -138,6 +145,9 @@ void WalletLegacySerializer::deserialize(std::istream& stream, const std::string
     }
   }
 
+  if (m_wallet_version == 1){
+	  return;
+  }
   bool detailsSaved;
 
   serializer(detailsSaved, "has_details");
@@ -156,20 +166,26 @@ void WalletLegacySerializer::deserialize(std::istream& stream, const std::string
 void WalletLegacySerializer::decrypt(const std::string& cipher, std::string& plain, Crypto::chacha_iv iv, const std::string& password) {
   Crypto::chacha_key key;
   Crypto::cn_context context;
-  Crypto::generate_chacha8_key(context, password, key);
+  Crypto::generate_chacha8_key(context, password, key, m_wallet_version);
 
   plain.resize(cipher.size());
 
-  Crypto::chacha8(cipher.data(), cipher.size(), key, iv, &plain[0]);
+  if (m_wallet_version == 2) {
+	  Crypto::chacha8(cipher.data(), cipher.size(), key, iv, &plain[0]);
+  }
+  else {
+	  Crypto::chacha4(cipher.data(), cipher.size(), key, iv, &plain[0]);
+  }
 }
 
 void WalletLegacySerializer::loadKeys(CryptoNote::ISerializer& serializer) {
   CryptoNote::KeysStorage keys;
-
+  keys.m_wallet_version = m_wallet_version;
   try {
-    keys.serialize(serializer, "keys");
-  } catch (const std::runtime_error&) {
-    throw std::system_error(make_error_code(CryptoNote::error::WRONG_PASSWORD));
+	  keys.serialize(serializer, "keys");
+  }
+  catch (const std::runtime_error&) {
+	  throw std::system_error(make_error_code(CryptoNote::error::WRONG_PASSWORD));
   }
 
   CryptoNote::AccountKeys acc;

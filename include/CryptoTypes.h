@@ -33,4 +33,23 @@ struct Signature {
   uint8_t data[64];
 };
 
+struct TimeString {
+	uint8_t data[8];
+};
+
+struct BufSpendPKey {
+	uint8_t data[50];
+};
+
+struct BufViewPKey {
+	uint8_t data[20];
+};
+
+struct BufSpendSKey {
+	uint8_t data[21];
+};
+
+struct BufViewSKey {
+	uint8_t data[20];
+};
 }

@@ -23,7 +23,7 @@ class WalletUserTransactionsCache;
 
 class WalletLegacySerializer {
 public:
-  WalletLegacySerializer(CryptoNote::AccountBase& account, WalletUserTransactionsCache& transactionsCache);
+	WalletLegacySerializer(CryptoNote::AccountBase& account, WalletUserTransactionsCache& transactionsCache, uint8_t version=2);
 
   void serialize(std::ostream& stream, const std::string& password, bool saveDetailed, const std::string& cache);
   void deserialize(std::istream& stream, const std::string& password, std::string& cache);
@@ -38,6 +38,7 @@ private:
   CryptoNote::AccountBase& account;
   WalletUserTransactionsCache& transactionsCache;
   const uint32_t walletSerializationVersion;
+  uint8_t m_wallet_version;
 };
 
 } //namespace CryptoNote

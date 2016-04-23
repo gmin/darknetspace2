@@ -40,17 +40,34 @@ std::error_code walletSaveWrapper(CryptoNote::IWalletLegacy& wallet, std::ofstre
 
 }
 
-void WalletHelper::prepareFileNames(const std::string& file_path, std::string& keys_file, std::string& wallet_file) {
-  if (Common::GetExtension(file_path) == ".wallet") {
-    keys_file = Common::RemoveExtension(file_path) + ".keys";
-    wallet_file = file_path;
-  } else if (Common::GetExtension(file_path) == ".keys") {
-    keys_file = file_path;
-    wallet_file = Common::RemoveExtension(file_path) + ".wallet";
-  } else {
-    keys_file = file_path + ".keys";
-    wallet_file = file_path + ".wallet";
-  }
+void WalletHelper::prepareFileNames(const std::string& file_path, std::string& keys_file, std::string& wallet_file, uint8_t type) {
+	if (type == 2){
+		if (Common::GetExtension(file_path) == ".wallet") {
+			keys_file = Common::RemoveExtension(file_path) + ".keys";
+			wallet_file = file_path;
+		}
+		else if (Common::GetExtension(file_path) == ".keys") {
+			keys_file = file_path;
+			wallet_file = Common::RemoveExtension(file_path) + ".wallet";
+		}
+		else {
+			keys_file = file_path + ".keys";
+			wallet_file = file_path + ".wallet";
+		}
+	}
+	else {
+		// keys_file is true, wallet_file is false. dnc1 has not *.wallet.
+		if (Common::GetExtension(file_path) == ".keys")
+		{//provided keys file name
+			keys_file = file_path;
+			wallet_file = Common::RemoveExtension(file_path) + ".wallet";
+		}
+		else
+		{//provided wallet file name
+			keys_file = file_path + ".keys";
+			wallet_file = file_path + ".wallet";
+		}
+	}
 }
 
 void WalletHelper::SendCompleteResultObserver::sendTransactionCompleted(CryptoNote::TransactionId transactionId, std::error_code result) {

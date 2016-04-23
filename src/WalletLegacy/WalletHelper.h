@@ -52,7 +52,7 @@ private:
   bool m_removed;
 };
 
-void prepareFileNames(const std::string& file_path, std::string& keys_file, std::string& wallet_file);
+void prepareFileNames(const std::string& file_path, std::string& keys_file, std::string& wallet_file, uint8_t type = 2);
 void storeWallet(CryptoNote::IWalletLegacy& wallet, const std::string& walletFilename);
 
 }

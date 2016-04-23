@@ -239,43 +239,70 @@ JsonValue buildLoggerConfiguration(Level level, const std::string& logfile) {
   return loggerConfiguration;
 }
 
-std::error_code initAndLoadWallet(IWalletLegacy& wallet, std::istream& walletFile, const std::string& password) {
+std::error_code initAndLoadWallet(IWalletLegacy& wallet, std::istream& walletFile, const std::string& password, uint8_t version = 2) {
   WalletHelper::InitWalletResultObserver initObserver;
   std::future<std::error_code> f_initError = initObserver.initResult.get_future();
 
   WalletHelper::IWalletRemoveObserverGuard removeGuard(wallet, initObserver);
-  wallet.initAndLoad(walletFile, password);
+  wallet.initAndLoad(walletFile, password,  version);
+  
   auto initError = f_initError.get();
-
   return initError;
 }
 
-std::string tryToOpenWalletOrLoadKeysOrThrow(LoggerRef& logger, std::unique_ptr<IWalletLegacy>& wallet, const std::string& walletFile, const std::string& password) {
+void initAndLoadWallet_dnc(IWalletLegacy& wallet, std::istream& walletFile, const std::string& password, uint8_t version = 2) {
+	WalletHelper::InitWalletResultObserver initObserver;
+	std::future<std::error_code> f_initError = initObserver.initResult.get_future();
+
+	WalletHelper::IWalletRemoveObserverGuard removeGuard(wallet, initObserver);
+	wallet.initAndLoad(walletFile, password, version);
+}
+
+std::string tryToOpenWalletOrLoadKeysOrThrow(LoggerRef& logger, std::unique_ptr<IWalletLegacy>& wallet, const std::string& walletFile, const std::string& password, uint8_t version = 2) {
   std::string keys_file, walletFileName;
-  WalletHelper::prepareFileNames(walletFile, keys_file, walletFileName);
+  WalletHelper::prepareFileNames(walletFile, keys_file, walletFileName, version);
 
   boost::system::error_code ignore;
   bool keysExists = boost::filesystem::exists(keys_file, ignore);
   bool walletExists = boost::filesystem::exists(walletFileName, ignore);
-  if (!walletExists && !keysExists && boost::filesystem::exists(walletFile, ignore)) {
-    boost::system::error_code renameEc;
-    boost::filesystem::rename(walletFile, walletFileName, renameEc);
-    if (renameEc) {
-      throw std::runtime_error("failed to rename file '" + walletFile + "' to '" + walletFileName + "': " + renameEc.message());
-    }
-
-    walletExists = true;
+  if (version == 1) {
+	  if (!(keysExists)) {
+		  throw std::runtime_error("failed to find keyfile: " + keys_file);
+	  }
+	  walletExists = true;
+  }
+  else {
+	  if (!walletExists && !keysExists && boost::filesystem::exists(walletFile, ignore)) {
+		  boost::system::error_code renameEc;
+		  boost::filesystem::rename(walletFile, walletFileName, renameEc);
+		  if (renameEc) {
+			  throw std::runtime_error("failed to rename file '" + walletFile + "' to '" + walletFileName + "': " + renameEc.message());
+		  }
+	  }
+	  walletExists = true;
   }
 
   if (walletExists) {
     logger(INFO) << "Loading wallet...";
     std::ifstream walletFile;
-    walletFile.open(walletFileName, std::ios_base::binary | std::ios_base::in);
+	if (version == 2){
+		walletFile.open(walletFileName, std::ios_base::binary | std::ios_base::in);
+	}
+	else{
+		walletFile.open(keys_file, std::ios_base::binary | std::ios_base::in);
+	}
     if (walletFile.fail()) {
       throw std::runtime_error("error opening wallet file '" + walletFileName + "'");
     }
 
-    auto initError = initAndLoadWallet(*wallet, walletFile, password);
+
+	if (version == 1) {
+		initAndLoadWallet_dnc(*wallet, walletFile, password, version);
+		walletFile.close();
+		return walletFileName;
+	}
+
+	auto initError = initAndLoadWallet(*wallet, walletFile, password, version);
 
     walletFile.close();
     if (initError) { //bad password, or legacy format
@@ -576,14 +603,15 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm) {
     return false;
   }
 
+  char c;
   if (m_generate_new.empty() && m_wallet_file_arg.empty()) {
-    std::cout << "Nor 'generate-new-wallet' neither 'wallet-file' argument was specified.\nWhat do you want to do?\n[O]pen existing wallet, [G]enerate new wallet file or [E]xit.\n";
-    char c;
+    std::cout << "Nor 'generate-new-wallet' neither 'wallet-file' argument was specified.\nWhat do you want to do?\n[O]pen existing wallet, [G]enerate new wallet file, [C]onvert from old dnc key or [E]xit.\n";
+
     do {
       std::string answer;
       std::getline(std::cin, answer);
       c = answer[0];
-      if (!(c == 'O' || c == 'G' || c == 'E' || c == 'o' || c == 'g' || c == 'e')) {
+	  if (!(c == 'O' || c == 'G' || c == 'E' || c == 'o' || c == 'g' || c == 'e' || c == 'c' || c == 'C')) {
         std::cout << "Unknown command: " << c <<std::endl;
       } else {
         break;
@@ -594,27 +622,49 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm) {
       return false;
     }
 
-    std::cout << "Specify wallet file name (e.g., wallet.bin).\n";
-    std::string userInput;
-    do {
-      std::cout << "Wallet file name: ";
-      std::getline(std::cin, userInput);
-      boost::algorithm::trim(userInput);
-    } while (userInput.empty());
+	std::string userInput;
+	m_wallet_version = 2;
+	if (c == 'c' || c == 'C') {
+		m_wallet_version = 1;
+		std::cout << "Specify old wallet file name (e.g., dnc.keys).\n";
+		do {
+			std::cout << "Old wallet file name: ";
+			std::getline(std::cin, userInput);
+			boost::algorithm::trim(userInput);
+		} while (userInput.empty());
+		m_old_wallet_file = userInput;
+		m_wallet_file_arg = userInput;
 
-    if (c == 'g' || c == 'G') {
-      m_generate_new = userInput;
-    } else {
-      m_wallet_file_arg = userInput;
-    }
+		do {
+			std::cout << "Specify new wallet file name: ";
+			std::getline(std::cin, userInput);
+			boost::algorithm::trim(userInput);
+		} while (userInput.empty());
+		m_new_wallet_file = userInput;
+	}
+	else {
+		std::cout << "Specify wallet file name (e.g., wallet.bin).\n";
+		do {
+			std::cout << "Wallet file name: ";
+			std::getline(std::cin, userInput);
+			boost::algorithm::trim(userInput);
+		} while (userInput.empty());
+
+		if (c == 'g' || c == 'G') {
+			m_generate_new = userInput;
+		}
+		else {
+			m_wallet_file_arg = userInput;
+		}
+	}
   }
-
   if (!m_generate_new.empty() && !m_wallet_file_arg.empty()) {
     fail_msg_writer() << "you can't specify 'generate-new-wallet' and 'wallet-file' arguments simultaneously";
     return false;
   }
 
   std::string walletFileName;
+  m_generate_new = m_new_wallet_file;
   if (!m_generate_new.empty()) {
     std::string ignoredString;
     WalletHelper::prepareFileNames(m_generate_new, ignoredString, walletFileName);
@@ -660,44 +710,76 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm) {
     fail_msg_writer() << "failed to init NodeRPCProxy: " << error.message();
     return false;
   }
+  
+  if (c == 'c' || c == 'C') {
+	  m_wallet_old.reset(new WalletLegacy(m_currency, *m_node));
+	  m_wallet_old->m_wallet_version = m_wallet_version;
+	  try {
+		  m_wallet_file = tryToOpenWalletOrLoadKeysOrThrow(logger, m_wallet_old, m_wallet_file_arg, pwd_container.password(), m_wallet_version);
+	  }
+	  catch (const std::exception& e) {
+		  fail_msg_writer() << "failed to load wallet: " << e.what();
+		  return false;
+	  }
 
-  if (!m_generate_new.empty()) {
-    std::string walletAddressFile = prepareWalletAddressFilename(m_generate_new);
-    boost::system::error_code ignore;
-    if (boost::filesystem::exists(walletAddressFile, ignore)) {
-      logger(ERROR, BRIGHT_RED) << "Address file already exists: " + walletAddressFile;
-      return false;
-    }
+	  m_generate_new = m_new_wallet_file;
+	  std::string walletAddressFile = prepareWalletAddressFilename(m_generate_new);
+	  boost::system::error_code ignore;
+	  if (boost::filesystem::exists(walletAddressFile, ignore)) {
+		  logger(ERROR, BRIGHT_RED) << "Address file already exists: " + walletAddressFile;
+		  return false;
+	  }
 
-    if (!new_wallet(walletFileName, pwd_container.password())) {
-      logger(ERROR, BRIGHT_RED) << "account creation failed";
-      return false;
-    }
+	  if (!new_wallet(walletFileName, pwd_container.password())) {
+		  logger(ERROR, BRIGHT_RED) << "account creation failed";
+		  return false;
+	  }
 
-    if (!writeAddressFile(walletAddressFile, m_wallet->getAddress())) {
-      logger(WARNING, BRIGHT_RED) << "Couldn't write wallet address file: " + walletAddressFile;
-    }
-  } else {
-    m_wallet.reset(new WalletLegacy(m_currency, *m_node));
-
-    try {
-      m_wallet_file = tryToOpenWalletOrLoadKeysOrThrow(logger, m_wallet, m_wallet_file_arg, pwd_container.password());
-    } catch (const std::exception& e) {
-      fail_msg_writer() << "failed to load wallet: " << e.what();
-      return false;
-    }
-
-    m_wallet->addObserver(this);
-    m_node->addObserver(static_cast<INodeObserver*>(this));
-
-    logger(INFO, BRIGHT_WHITE) << "Opened wallet: " << m_wallet->getAddress();
-
-    success_msg_writer() <<
-      "**********************************************************************\n" <<
-      "Use \"help\" command to see the list of available commands.\n" <<
-      "**********************************************************************";
+	  if (!writeAddressFile(walletAddressFile, m_wallet->getAddress())) {
+		  logger(WARNING, BRIGHT_RED) << "Couldn't write wallet address file: " + walletAddressFile;
+	  }
   }
+  else {
+	  if (!m_generate_new.empty()) {
+		  std::string walletAddressFile = prepareWalletAddressFilename(m_generate_new);
+		  boost::system::error_code ignore;
+		  if (boost::filesystem::exists(walletAddressFile, ignore)) {
+			  logger(ERROR, BRIGHT_RED) << "Address file already exists: " + walletAddressFile;
+			  return false;
+		  }
 
+		  if (!new_wallet(walletFileName, pwd_container.password())) {
+			  logger(ERROR, BRIGHT_RED) << "account creation failed";
+			  return false;
+		  }
+
+		  m_wallet_version = 2;
+		  if (!writeAddressFile(walletAddressFile, m_wallet->getAddress())) {
+			  logger(WARNING, BRIGHT_RED) << "Couldn't write wallet address file: " + walletAddressFile;
+		  }
+	  }
+	  else {
+		  m_wallet.reset(new WalletLegacy(m_currency, *m_node));
+		  m_wallet->m_wallet_version = m_wallet_version;
+		  try {
+			  m_wallet_file = tryToOpenWalletOrLoadKeysOrThrow(logger, m_wallet, m_wallet_file_arg, pwd_container.password(), m_wallet_version);
+		  }
+		  catch (const std::exception& e) {
+			  fail_msg_writer() << "failed to load wallet: " << e.what();
+			  return false;
+		  }
+
+		  m_wallet->addObserver(this);
+		  m_node->addObserver(static_cast<INodeObserver*>(this));
+
+		  logger(INFO, BRIGHT_WHITE) << "Opened wallet: " << m_wallet->getAddress();
+
+		  success_msg_writer() <<
+			  "**********************************************************************\n" <<
+			  "Use \"help\" command to see the list of available commands.\n" <<
+			  "**********************************************************************";
+	  }
+  }
   return true;
 }
 //----------------------------------------------------------------------------------------------------
@@ -721,15 +803,23 @@ void simple_wallet::handle_command_line(const boost::program_options::variables_
 }
 //----------------------------------------------------------------------------------------------------
 bool simple_wallet::new_wallet(const std::string &wallet_file, const std::string& password) {
+	CryptoNote::AccountKeys OldKeys;
   m_wallet_file = wallet_file;
-
   m_wallet.reset(new WalletLegacy(m_currency, *m_node.get()));
+  m_wallet->m_wallet_version = m_wallet_version;
   m_node->addObserver(static_cast<INodeObserver*>(this));
   m_wallet->addObserver(this);
   try {
     m_initResultPromise.reset(new std::promise<std::error_code>());
     std::future<std::error_code> f_initError = m_initResultPromise->get_future();
-    m_wallet->initAndGenerate(password);
+	if (m_wallet_version == 1) {
+		m_wallet_old->getAccountKeys(OldKeys);
+		m_wallet->initAndGenerate(password, OldKeys);
+		m_wallet->m_wallet_version = m_wallet_version = 2;
+	}
+	else {
+		m_wallet->initAndGenerate(password);
+	}
     auto initError = f_initError.get();
     m_initResultPromise.reset(nullptr);
     if (initError) {

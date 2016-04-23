@@ -46,6 +46,7 @@ namespace CryptoNote
 
     const CryptoNote::Currency& currency() const { return m_currency; }
 
+	uint8_t m_wallet_version;
   private:
 
     Logging::LoggerMessage success_msg_writer(bool color = false) {
@@ -141,6 +142,8 @@ namespace CryptoNote
     };
 
   private:
+    std::string m_old_wallet_file;
+    std::string m_new_wallet_file;
     std::string m_wallet_file_arg;
     std::string m_generate_new;
     std::string m_import_path;
@@ -160,7 +163,8 @@ namespace CryptoNote
     Logging::LoggerRef logger;
 
     std::unique_ptr<CryptoNote::NodeRpcProxy> m_node;
-    std::unique_ptr<CryptoNote::IWalletLegacy> m_wallet;
+	std::unique_ptr<CryptoNote::IWalletLegacy> m_wallet;
+	std::unique_ptr<CryptoNote::IWalletLegacy> m_wallet_old;
     refresh_progress_reporter_t m_refresh_progress_reporter;
 
     bool m_walletSynchronized;

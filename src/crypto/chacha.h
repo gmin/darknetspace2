@@ -21,6 +21,7 @@ namespace Crypto {
   extern "C" {
 #endif
     void chacha(size_t doubleRounds, const void* data, size_t length, const uint8_t* key, const uint8_t* iv, char* cipher);
+	void chacha8(const void* data, size_t length, const uint8_t* key, const uint8_t* iv, char* cipher);
 #if defined(__cplusplus)
   }
 
@@ -46,10 +47,19 @@ namespace Crypto {
     chacha(4, data, length, reinterpret_cast<const uint8_t*>(&key), reinterpret_cast<const uint8_t*>(&iv), cipher);
   }
 
-  inline void generate_chacha8_key(Crypto::cn_context &context, const std::string& password, chacha_key& key) {
+  inline void chacha4(const void* data, size_t length, const chacha_key& key, const chacha_iv& iv, char* cipher) {
+	  chacha8(data, length, reinterpret_cast<const uint8_t*>(&key), reinterpret_cast<const uint8_t*>(&iv), cipher);
+  }
+
+  inline void generate_chacha8_key(Crypto::cn_context &context, const std::string& password, chacha_key& key, uint8_t type=2) {
     static_assert(sizeof(chacha_key) <= sizeof(Hash), "Size of hash must be at least that of chacha_key");
     Hash pwd_hash;
-    cn_slow_hash(context, password.data(), password.size(), pwd_hash);
+	if (type == 2) {
+		cn_slow_hash(context, password.data(), password.size(), pwd_hash);
+	}
+	else {
+		Crypto::cn_fast_hash(password.data(), password.size(), pwd_hash);
+	}
     memcpy(&key, &pwd_hash, sizeof(key));
     memset(&pwd_hash, 0, sizeof(pwd_hash));
   }

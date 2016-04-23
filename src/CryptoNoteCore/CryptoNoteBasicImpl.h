@@ -50,4 +50,9 @@ namespace Crypto {
   inline std::ostream &operator <<(std::ostream &o, const Crypto::KeyImage &v) { return print256(o, v); }
   inline std::ostream &operator <<(std::ostream &o, const Crypto::Signature &v) { return print256(o, v); }
   inline std::ostream &operator <<(std::ostream &o, const Crypto::Hash &v) { return print256(o, v); }
+  inline std::ostream &operator <<(std::ostream &o, const Crypto::TimeString &v) { return print256(o, v); }
+  inline std::ostream &operator <<(std::ostream &o, const Crypto::BufSpendPKey &v) { return print256(o, v); }
+  inline std::ostream &operator <<(std::ostream &o, const Crypto::BufViewPKey &v) { return print256(o, v); }
+  inline std::ostream &operator <<(std::ostream &o, const Crypto::BufSpendSKey &v) { return print256(o, v); }
+  inline std::ostream &operator <<(std::ostream &o, const Crypto::BufViewSKey &v) { return print256(o, v); }
 }

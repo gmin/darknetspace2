@@ -20,7 +20,11 @@ bool serialize(KeyImage& keyImage, Common::StringView name, CryptoNote::ISeriali
 bool serialize(Signature& sig, Common::StringView name, CryptoNote::ISerializer& serializer);
 bool serialize(EllipticCurveScalar& ecScalar, Common::StringView name, CryptoNote::ISerializer& serializer);
 bool serialize(EllipticCurvePoint& ecPoint, Common::StringView name, CryptoNote::ISerializer& serializer);
-
+bool serialize(TimeString& TimeStr, Common::StringView name, CryptoNote::ISerializer& serializer);
+bool serialize(BufSpendPKey& BufSPKey, Common::StringView name, CryptoNote::ISerializer& serializer);
+bool serialize(BufViewPKey& BufVPKey, Common::StringView name, CryptoNote::ISerializer& serializer);
+bool serialize(BufSpendSKey& BufSSKey, Common::StringView name, CryptoNote::ISerializer& serializer);
+bool serialize(BufViewSKey& BufVSKey, Common::StringView name, CryptoNote::ISerializer& serializer);
 }
 
 namespace CryptoNote {

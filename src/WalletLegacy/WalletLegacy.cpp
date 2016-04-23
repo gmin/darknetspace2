@@ -159,6 +159,25 @@ void WalletLegacy::initAndGenerate(const std::string& password) {
   m_observerManager.notify(&IWalletLegacyObserver::initCompleted, std::error_code());
 }
 
+
+void WalletLegacy::initAndGenerate(const std::string& password, CryptoNote::AccountKeys &oldKeys) {
+	{
+		std::unique_lock<std::mutex> stateLock(m_cacheMutex);
+
+		if (m_state != NOT_INITIALIZED) {
+			throw std::system_error(make_error_code(error::ALREADY_INITIALIZED));
+		}
+		
+		m_account.setAccountKeys(oldKeys);
+		m_account.set_createtime(time(NULL));
+		m_password = password;
+
+		initSync();
+	}
+
+	m_observerManager.notify(&IWalletLegacyObserver::initCompleted, std::error_code());
+}
+
 void WalletLegacy::initWithKeys(const AccountKeys& accountKeys, const std::string& password) {
   {
     std::unique_lock<std::mutex> stateLock(m_cacheMutex);
@@ -177,19 +196,28 @@ void WalletLegacy::initWithKeys(const AccountKeys& accountKeys, const std::strin
   m_observerManager.notify(&IWalletLegacyObserver::initCompleted, std::error_code());
 }
 
-void WalletLegacy::initAndLoad(std::istream& source, const std::string& password) {
+void WalletLegacy::initAndLoad(std::istream& source, const std::string& password, uint8_t version) {
   std::unique_lock<std::mutex> stateLock(m_cacheMutex);
 
   if (m_state != NOT_INITIALIZED) {
     throw std::system_error(make_error_code(error::ALREADY_INITIALIZED));
   }
 
+  m_wallet_version = version;
   m_password = password;
   m_state = LOADING;
       
   m_asyncContextCounter.addAsyncContext();
-  std::thread loader(&WalletLegacy::doLoad, this, std::ref(source));
-  loader.detach();
+  if (m_wallet_version == 2) {
+	  std::thread loader(&WalletLegacy::doLoad, this, std::ref(source));
+	  loader.detach();
+  }
+  else {
+	  ContextCounterHolder counterHolder(m_asyncContextCounter);
+	  std::string cache;
+	  WalletLegacySerializer serializer(m_account, m_transactionsCache, m_wallet_version);
+	  serializer.deserialize(source, m_password, cache);
+  }
 }
 
 void WalletLegacy::initSync() {
@@ -214,12 +242,15 @@ void WalletLegacy::doLoad(std::istream& source) {
   try {
     std::unique_lock<std::mutex> lock(m_cacheMutex);
     
-    std::string cache;
-    WalletLegacySerializer serializer(m_account, m_transactionsCache);
+	std::string cache;
+	WalletLegacySerializer serializer(m_account, m_transactionsCache, m_wallet_version);
     serializer.deserialize(source, m_password, cache);
-      
-    initSync();
 
+	if (this->m_wallet_version == 1) {
+		return;
+	}
+
+    initSync();
     try {
       if (!cache.empty()) {
         std::stringstream stream(cache);
