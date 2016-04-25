@@ -604,6 +604,7 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm) {
   }
 
   char c;
+  Tools::PasswordContainer pwd_container;
   if (m_generate_new.empty() && m_wallet_file_arg.empty()) {
     std::cout << "Nor 'generate-new-wallet' neither 'wallet-file' argument was specified.\nWhat do you want to do?\n[O]pen existing wallet, [G]enerate new wallet file, [C]onvert from old dnc key or [E]xit.\n";
 
@@ -634,6 +635,14 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm) {
 		} while (userInput.empty());
 		m_old_wallet_file = userInput;
 		m_wallet_file_arg = userInput;
+
+		if (command_line::has_arg(vm, arg_password)) {
+			pwd_container.password(command_line::get_arg(vm, arg_password));
+		}
+		else if (!pwd_container.read_password()) {
+			fail_msg_writer() << "failed to read wallet password";
+			return false;
+		}
 
 		do {
 			std::cout << "Specify new wallet file name: ";
@@ -689,12 +698,14 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm) {
     m_daemon_address = std::string("http://") + m_daemon_host + ":" + std::to_string(m_daemon_port);
   }
 
-  Tools::PasswordContainer pwd_container;
-  if (command_line::has_arg(vm, arg_password)) {
-    pwd_container.password(command_line::get_arg(vm, arg_password));
-  } else if (!pwd_container.read_password()) {
-    fail_msg_writer() << "failed to read wallet password";
-    return false;
+  if (m_wallet_version == 2) {
+	  if (command_line::has_arg(vm, arg_password)) {
+		  pwd_container.password(command_line::get_arg(vm, arg_password));
+	  }
+	  else if (!pwd_container.read_password()) {
+		  fail_msg_writer() << "failed to read wallet password";
+		  return false;
+	  }
   }
 
   this->m_node.reset(new NodeRpcProxy(m_daemon_host, m_daemon_port));
