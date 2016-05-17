@@ -673,7 +673,10 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm) {
   }
 
   std::string walletFileName;
-  m_generate_new = m_new_wallet_file;
+  if (m_wallet_version == 1)
+  {
+	  m_generate_new = m_new_wallet_file;
+  }
   if (!m_generate_new.empty()) {
     std::string ignoredString;
     WalletHelper::prepareFileNames(m_generate_new, ignoredString, walletFileName);
