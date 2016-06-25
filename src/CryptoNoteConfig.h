@@ -8,6 +8,9 @@
 #include <cstdint>
 #include <initializer_list>
 
+//#define SQ_TEST_TIME 1
+//#define SQ_TEST_GETBLOCK 1
+
 namespace CryptoNote {
 namespace parameters {
 
@@ -31,7 +34,6 @@ const uint64_t COIN                                          = UINT64_C(10000000
 const uint64_t MINIMUM_FEE                                   = UINT64_C(100000);     // pow(10, 5)
 const uint64_t DEFAULT_DUST_THRESHOLD                        = UINT64_C(100000);     // pow(10, 5)
 
-const uint64_t DIFFICULTY_TARGET                             = 240; // seconds
 const uint64_t EXPECTED_NUMBER_OF_BLOCKS_PER_DAY             = 24 * 60 * 60 / DIFFICULTY_TARGET;
 const size_t   DIFFICULTY_WINDOW                             = 240; // blocks
 const size_t   DIFFICULTY_CUT                                = 30;  // timestamps to cut after sorting
@@ -40,7 +42,7 @@ static_assert(2 * DIFFICULTY_CUT <= DIFFICULTY_WINDOW - 2, "Bad DIFFICULTY_WINDO
 
 const uint64_t DEPOSIT_MIN_AMOUNT                            = 150 * COIN;
 const uint32_t DEPOSIT_MIN_TERM                              = 11000;
-const uint32_t DEPOSIT_MAX_TERM                              = 10 * 12 * 11000;
+const uint32_t DEPOSIT_MAX_TERM                              = 12 * 11000;
 const uint64_t DEPOSIT_MIN_TOTAL_RATE_FACTOR                 = 77000;
 const uint64_t DEPOSIT_MAX_TOTAL_RATE                        = 11;
 static_assert(DEPOSIT_MIN_TERM > 0, "Bad DEPOSIT_MIN_TERM");
@@ -120,7 +122,6 @@ const char     P2P_STAT_TRUSTED_PUB_KEY[]                    = "44165823f0e12573
 
 const std::initializer_list<const char*> SEED_NODES = {
 //  "seed.darknetspace.org:38808",
-//  "seed.darknetspace.com:38808"
 	"139.196.154.108:38808",
 	"121.40.148.89:38808",
 	"182.92.201.174:38808",

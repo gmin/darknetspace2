@@ -15,6 +15,7 @@
 #include "BlockchainExplorerErrors.h"
 #include "ITransaction.h"
 
+#define ENABLE_LOG 0
 using namespace Logging;
 using namespace Crypto;
 
@@ -159,28 +160,38 @@ bool BlockchainExplorer::removeObserver(IBlockchainObserver* observer) {
 
 void BlockchainExplorer::init() {
   if (state.load() != NOT_INITIALIZED) {
+#if ENABLE_LOG
     logger(ERROR) << "Init called on already initialized BlockchainExplorer.";
+#endif
     throw std::system_error(make_error_code(CryptoNote::error::BlockchainExplorerErrorCodes::ALREADY_INITIALIZED));
   }
   if (node.addObserver(this)) {
     state.store(INITIALIZED);
-  } else {
+  }
+  else {
+#if ENABLE_LOG
     logger(ERROR) << "Can't add observer to node.";
+#endif
     state.store(NOT_INITIALIZED);
     throw std::system_error(make_error_code(CryptoNote::error::BlockchainExplorerErrorCodes::INTERNAL_ERROR));
   }
   if (getBlockchainTop(knownBlockchainTop)) {
     knownBlockchainTopHeight = knownBlockchainTop.height;
-  } else {
+  }
+  else {
+#if ENABLE_LOG
     logger(ERROR) << "Can't get blockchain top.";
+#endif
     state.store(NOT_INITIALIZED);
     throw std::system_error(make_error_code(CryptoNote::error::BlockchainExplorerErrorCodes::INTERNAL_ERROR));
   }
 }
 
 void BlockchainExplorer::shutdown() {
-  if (state.load() != INITIALIZED) {
+	if (state.load() != INITIALIZED) {
+#if ENABLE_LOG
     logger(ERROR) << "Shutdown called on not initialized BlockchainExplorer.";
+#endif
     throw std::system_error(make_error_code(CryptoNote::error::BlockchainExplorerErrorCodes::NOT_INITIALIZED));
   }
   node.removeObserver(this);
@@ -193,7 +204,9 @@ bool BlockchainExplorer::getBlocks(const std::vector<uint32_t>& blockHeights, st
     throw std::system_error(make_error_code(CryptoNote::error::BlockchainExplorerErrorCodes::NOT_INITIALIZED));
   }
 
+#if ENABLE_LOG
   logger(DEBUGGING) << "Get blocks by height request came.";
+#endif
   NodeRequest request(
     std::bind(
       static_cast<
@@ -211,7 +224,9 @@ bool BlockchainExplorer::getBlocks(const std::vector<uint32_t>& blockHeights, st
   );
   std::error_code ec = request.performBlocking();
   if (ec) {
+#if ENABLE_LOG
     logger(ERROR) << "Can't get blocks by height: " << ec.message();
+#endif
     throw std::system_error(ec);
   }
   assert(blocks.size() == blockHeights.size());
@@ -223,7 +238,9 @@ bool BlockchainExplorer::getBlocks(const std::vector<Hash>& blockHashes, std::ve
     throw std::system_error(make_error_code(CryptoNote::error::BlockchainExplorerErrorCodes::NOT_INITIALIZED));
   }
 
+#if ENABLE_LOG
   logger(DEBUGGING) << "Get blocks by hash request came.";
+#endif
   NodeRequest request(
     std::bind(
       static_cast<
@@ -241,7 +258,9 @@ bool BlockchainExplorer::getBlocks(const std::vector<Hash>& blockHashes, std::ve
   );
   std::error_code ec = request.performBlocking();
   if (ec) {
+#if ENABLE_LOG
     logger(ERROR) << "Can't get blocks by hash: " << ec.message();
+#endif
     throw std::system_error(ec);
   }
   assert(blocks.size() == blockHashes.size());
@@ -253,7 +272,9 @@ bool BlockchainExplorer::getBlocks(uint64_t timestampBegin, uint64_t timestampEn
     throw std::system_error(make_error_code(CryptoNote::error::BlockchainExplorerErrorCodes::NOT_INITIALIZED));
   }
 
+#if ENABLE_LOG
   logger(DEBUGGING) << "Get blocks by timestamp request came.";
+#endif
   NodeRequest request(
     std::bind(
       static_cast<
@@ -277,7 +298,9 @@ bool BlockchainExplorer::getBlocks(uint64_t timestampBegin, uint64_t timestampEn
   );
   std::error_code ec = request.performBlocking();
   if (ec) {
+#if ENABLE_LOG
     logger(ERROR) << "Can't get blocks by timestamp: " << ec.message();
+#endif
     throw std::system_error(ec);
   }
   return true;
@@ -288,7 +311,9 @@ bool BlockchainExplorer::getBlockchainTop(BlockDetails& topBlock) {
     throw std::system_error(make_error_code(CryptoNote::error::BlockchainExplorerErrorCodes::NOT_INITIALIZED));
   }
 
+#if ENABLE_LOG
   logger(DEBUGGING) << "Get blockchain top request came.";
+#endif
   uint32_t lastHeight = node.getLastLocalBlockHeight();
 
   std::vector<uint32_t> heights;
@@ -296,7 +321,9 @@ bool BlockchainExplorer::getBlockchainTop(BlockDetails& topBlock) {
 
   std::vector<std::vector<BlockDetails>> blocks;
   if (!getBlocks(heights, blocks)) {
+#if ENABLE_LOG
     logger(ERROR) << "Can't get blockchain top.";
+#endif
     throw std::system_error(make_error_code(CryptoNote::error::BlockchainExplorerErrorCodes::INTERNAL_ERROR));
   }
   assert(blocks.size() == heights.size() && blocks.size() == 1);
@@ -311,7 +338,9 @@ bool BlockchainExplorer::getBlockchainTop(BlockDetails& topBlock) {
   }
 
   if (!gotMainchainBlock) {
+#if ENABLE_LOG
     logger(ERROR) << "Can't get blockchain top: all blocks on height " << lastHeight << " are orphaned.";
+#endif
     throw std::system_error(make_error_code(CryptoNote::error::BlockchainExplorerErrorCodes::INTERNAL_ERROR));
   }
   return true;
@@ -322,7 +351,9 @@ bool BlockchainExplorer::getTransactions(const std::vector<Hash>& transactionHas
     throw std::system_error(make_error_code(CryptoNote::error::BlockchainExplorerErrorCodes::NOT_INITIALIZED));
   }
 
+#if ENABLE_LOG
   logger(DEBUGGING) << "Get transactions by hash request came.";
+#endif
   NodeRequest request(
     std::bind(
       static_cast<
@@ -340,7 +371,9 @@ bool BlockchainExplorer::getTransactions(const std::vector<Hash>& transactionHas
   );
   std::error_code ec = request.performBlocking();
   if (ec) {
+#if ENABLE_LOG
     logger(ERROR) << "Can't get transactions by hash: " << ec.message();
+#endif
     throw std::system_error(ec);
   }
   return true;
@@ -351,7 +384,9 @@ bool BlockchainExplorer::getPoolTransactions(uint64_t timestampBegin, uint64_t t
     throw std::system_error(make_error_code(CryptoNote::error::BlockchainExplorerErrorCodes::NOT_INITIALIZED));
   }
 
+#if ENABLE_LOG
   logger(DEBUGGING) << "Get transactions by timestamp request came.";
+#endif
   NodeRequest request(
     std::bind(
       &INode::getPoolTransactions, 
@@ -366,7 +401,9 @@ bool BlockchainExplorer::getPoolTransactions(uint64_t timestampBegin, uint64_t t
   );
   std::error_code ec = request.performBlocking();
   if (ec) {
+#if ENABLE_LOG
     logger(ERROR) << "Can't get transactions by timestamp: " << ec.message();
+#endif
     throw std::system_error(ec);
   }
   return true;
@@ -377,7 +414,9 @@ bool BlockchainExplorer::getTransactionsByPaymentId(const Hash& paymentId, std::
     throw std::system_error(make_error_code(CryptoNote::error::BlockchainExplorerErrorCodes::NOT_INITIALIZED));
   }
 
+#if ENABLE_LOG
   logger(DEBUGGING) << "Get transactions by payment id request came.";
+#endif
   NodeRequest request(
     std::bind(
       &INode::getTransactionsByPaymentId, 
@@ -389,7 +428,9 @@ bool BlockchainExplorer::getTransactionsByPaymentId(const Hash& paymentId, std::
   );
   std::error_code ec = request.performBlocking();
   if (ec) {
+#if ENABLE_LOG
     logger(ERROR) << "Can't get transactions by payment id: " << ec.message();
+#endif
     throw std::system_error(ec);
   }
   return true;
@@ -400,7 +441,9 @@ bool BlockchainExplorer::getPoolState(const std::vector<Hash>& knownPoolTransact
     throw std::system_error(make_error_code(CryptoNote::error::BlockchainExplorerErrorCodes::NOT_INITIALIZED));
   }
 
+#if ENABLE_LOG
   logger(DEBUGGING) << "Get pool state request came.";
+#endif
   std::vector<std::unique_ptr<ITransactionReader>> rawNewTransactions;
 
   NodeRequest request(
@@ -422,7 +465,9 @@ bool BlockchainExplorer::getPoolState(const std::vector<Hash>& knownPoolTransact
   );
   std::error_code ec = request.performBlocking();
   if (ec) {
+#if ENABLE_LOG
     logger(ERROR) << "Can't get pool state: " << ec.message();
+#endif
     throw std::system_error(ec);
   }
 
@@ -455,7 +500,9 @@ bool BlockchainExplorer::isSynchronized() {
     throw std::system_error(make_error_code(CryptoNote::error::BlockchainExplorerErrorCodes::NOT_INITIALIZED));
   }
 
+#if ENABLE_LOG
   logger(DEBUGGING) << "Synchronization status request came.";
+#endif
   bool syncStatus = false;
   NodeRequest request(
     std::bind(
@@ -467,7 +514,9 @@ bool BlockchainExplorer::isSynchronized() {
   );
   std::error_code ec = request.performBlocking();
   if (ec) {
+#if ENABLE_LOG
     logger(ERROR) << "Can't get synchronization status: " << ec.message();
+#endif
     throw std::system_error(ec);
   }
   synchronized.store(syncStatus);
@@ -475,7 +524,9 @@ bool BlockchainExplorer::isSynchronized() {
 }
 
 void BlockchainExplorer::poolChanged() {
+#if ENABLE_LOG
   logger(DEBUGGING) << "Got poolChanged notification.";
+#endif
 
   if (!synchronized.load() || observersCounter.load() == 0) {
     return;
@@ -514,8 +565,10 @@ void BlockchainExplorer::poolChanged() {
     [this, rawNewTransactionsPtr, removedTransactionsPtr, isBlockchainActualPtr](std::error_code ec) {
       ScopeExitHandler poolUpdateEndGuard(std::bind(&BlockchainExplorer::poolUpdateEndHandler, this));
 
-      if (ec) {
+	  if (ec) {
+#if ENABLE_LOG
         logger(ERROR) << "Can't send poolChanged notification because can't get pool symmetric difference: " << ec.message();
+#endif
         return;
       }
 
@@ -564,14 +617,18 @@ void BlockchainExplorer::poolChanged() {
         [this, newTransactionsHashesPtr, newTransactionsPtr, removedTransactionsHashesPtr](std::error_code ec) {
           ScopeExitHandler poolUpdateEndGuard(std::bind(&BlockchainExplorer::poolUpdateEndHandler, this));
 
-          if (ec) {
+		  if (ec) {
+#if ENABLE_LOG
             logger(ERROR) << "Can't send poolChanged notification because can't get transactions: " << ec.message();
+#endif
             return;
           }
 
           if (!newTransactionsPtr->empty() || !removedTransactionsHashesPtr->empty()) {
-            observerManager.notify(&IBlockchainObserver::poolUpdated, *newTransactionsPtr, *removedTransactionsHashesPtr);
+			  observerManager.notify(&IBlockchainObserver::poolUpdated, *newTransactionsPtr, *removedTransactionsHashesPtr);
+#if ENABLE_LOG
             logger(DEBUGGING) << "poolUpdated notification was successfully sent.";
+#endif
           }
         }
       );
@@ -590,7 +647,9 @@ void BlockchainExplorer::poolUpdateEndHandler() {
 }
 
 void BlockchainExplorer::blockchainSynchronized(uint32_t topHeight) {
+#if ENABLE_LOG
   logger(DEBUGGING) << "Got blockchainSynchronized notification.";
+#endif
 
   synchronized.store(true);
 
@@ -621,8 +680,10 @@ void BlockchainExplorer::blockchainSynchronized(uint32_t topHeight) {
 
   request.performAsync(asyncContextCounter,
     [this, blockHeightsPtr, blocksPtr, topHeight](std::error_code ec) {
-      if (ec) {
+	  if (ec) {
+#if ENABLE_LOG
         logger(ERROR) << "Can't send blockchainSynchronized notification because can't get blocks by height: " << ec.message();
+#endif
         return;
       }
       assert(blocksPtr->size() == blockHeightsPtr->size() && blocksPtr->size() == 1);
@@ -637,19 +698,25 @@ void BlockchainExplorer::blockchainSynchronized(uint32_t topHeight) {
         }
       }
 
-      if (!gotMainchainBlock) {
+	  if (!gotMainchainBlock) {
+#if ENABLE_LOG
         logger(ERROR) << "Can't send blockchainSynchronized notification because can't get blockchain top: all blocks on height " << topHeight << " are orphaned.";
+#endif
         return;
       }
 
-      observerManager.notify(&IBlockchainObserver::blockchainSynchronized, topMainchainBlock);
+	  observerManager.notify(&IBlockchainObserver::blockchainSynchronized, topMainchainBlock);
+#if ENABLE_LOG
       logger(DEBUGGING) << "blockchainSynchronized notification was successfully sent.";
+#endif
     }
   );
 }
 
 void BlockchainExplorer::localBlockchainUpdated(uint32_t height) {
+#if ENABLE_LOG
   logger(DEBUGGING) << "Got localBlockchainUpdated notification.";
+#endif
 
   if (observersCounter.load() == 0) {
     knownBlockchainTopHeight = height;
@@ -687,8 +754,10 @@ void BlockchainExplorer::localBlockchainUpdated(uint32_t height) {
 
   request.performAsync(asyncContextCounter,
     [this, blockHeightsPtr, blocksPtr](std::error_code ec) {
-      if (ec) {
+	  if (ec) {
+#if ENABLE_LOG
         logger(ERROR) << "Can't send blockchainUpdated notification because can't get blocks by height: " << ec.message();
+#endif
         return;
       }
       assert(blocksPtr->size() == blockHeightsPtr->size());
@@ -721,15 +790,19 @@ void BlockchainExplorer::localBlockchainUpdated(uint32_t height) {
         }
       }
 
-      if (!gotTopMainchainBlock) {
+	  if (!gotTopMainchainBlock) {
+#if ENABLE_LOG
         logger(ERROR) << "Can't send localBlockchainUpdated notification because can't get blockchain top: all blocks on height " << topHeight << " are orphaned.";
+#endif
         return;
       }
 
       knownBlockchainTop = topMainchainBlock;
 
-      observerManager.notify(&IBlockchainObserver::blockchainUpdated, newBlocks, orphanedBlocks);
+	  observerManager.notify(&IBlockchainObserver::blockchainUpdated, newBlocks, orphanedBlocks);
+#if ENABLE_LOG
       logger(DEBUGGING) << "localBlockchainUpdated notification was successfully sent.";
+#endif
     }
   );
 }

@@ -624,6 +624,13 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm) {
     }
 
 	std::string userInput;
+
+	//do {
+	//	std::cout << "Old wallet file name: ";
+	//	std::getline(std::cin, userInput);
+	//	boost::algorithm::trim(userInput);
+	//} while (userInput.empty());
+
 	m_wallet_version = 2;
 	if (c == 'c' || c == 'C') {
 		m_wallet_version = 1;
@@ -725,7 +732,8 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm) {
     return false;
   }
   
-  if (c == 'c' || c == 'C') {
+  if (m_wallet_version == 1)
+  {
 	  m_wallet_old.reset(new WalletLegacy(m_currency, *m_node));
 	  m_wallet_old->m_wallet_version = m_wallet_version;
 	  try {

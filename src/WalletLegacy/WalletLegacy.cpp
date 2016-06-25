@@ -223,7 +223,7 @@ void WalletLegacy::initAndLoad(std::istream& source, const std::string& password
 void WalletLegacy::initSync() {
   AccountSubscription sub;
   sub.keys = reinterpret_cast<const AccountKeys&>(m_account.getAccountKeys());
-  sub.transactionSpendableAge = 6;
+  sub.transactionSpendableAge = 3;
   sub.syncStart.height = 0;
   sub.syncStart.timestamp = m_account.get_createtime() - ACCOUN_CREATE_TIME_ACCURACY;
   

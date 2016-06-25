@@ -193,13 +193,14 @@ uint64_t Currency::calculateInterest(uint64_t amount, uint32_t term) const {
   assert(static_cast<uint64_t>(term)* m_depositMaxTotalRate > m_depositMinTotalRateFactor);
 
   uint64_t a = static_cast<uint64_t>(term) * m_depositMaxTotalRate - m_depositMinTotalRateFactor;
+  a = a * 5000 / 1042;
   uint64_t bHi;
   uint64_t bLo = mul128(amount, a, &bHi);
 
   uint64_t interestHi;
   uint64_t interestLo;
-  assert(std::numeric_limits<uint32_t>::max() / 100 > m_depositMaxTerm);
-  div128_32(bHi, bLo, static_cast<uint32_t>(100 * m_depositMaxTerm), &interestHi, &interestLo);
+  assert(std::numeric_limits<uint32_t>::max() / 1000 > m_depositMaxTerm);
+  div128_32(bHi, bLo, static_cast<uint32_t>(1000 * m_depositMaxTerm), &interestHi, &interestLo);
   assert(interestHi == 0);
 
   return interestLo;

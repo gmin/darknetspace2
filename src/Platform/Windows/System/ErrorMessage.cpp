@@ -5,9 +5,8 @@
 
 #include "ErrorMessage.h"
 
-#include <cstddef>
 #include <windows.h>
-
+#include <cstddef>
 namespace System {
 
 std::string lastErrorMessage() {

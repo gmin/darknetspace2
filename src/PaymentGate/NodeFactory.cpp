@@ -8,7 +8,8 @@
 #include "NodeRpcProxy/NodeRpcProxy.h"
 #include <memory>
 #include <future>
-
+#include "CryptoNote.h"
+using namespace CryptoNote;
 namespace PaymentService {
 
 class NodeRpcStub: public CryptoNote::INode {
@@ -19,7 +20,7 @@ public:
 
   virtual void init(const Callback& callback) override { }
   virtual bool shutdown() override { return true; }
-
+  virtual bool getBlockByHeight(uint32_t& blockHeight, BlockChain &bc) override{ return false; }
   virtual size_t getPeerCount() const override { return 0; }
   virtual uint32_t getLastLocalBlockHeight() const override { return 0; }
   virtual uint32_t getLastKnownBlockHeight() const override { return 0; }

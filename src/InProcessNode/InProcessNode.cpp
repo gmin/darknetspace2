@@ -18,6 +18,17 @@
 #include "InProcessNodeErrors.h"
 #include "Common/StringTools.h"
 
+#ifdef SQ_TEST_TIME
+#include <time.h>
+#endif
+
+#ifdef SQ_TEST_GETBLOCK
+#include <time.h>
+#include <winbase.h>
+#include <windows.h>
+#include <iostream>
+#endif
+
 using namespace Crypto;
 using namespace Common;
 
@@ -391,6 +402,18 @@ uint32_t InProcessNode::getLastLocalBlockHeight() const {
   return height;
 }
 
+bool InProcessNode::getBlockByHeight(uint32_t& blockHeight, BlockChain &bc)
+{
+	{
+		std::unique_lock<std::mutex> lock(mutex);
+		if (state != INITIALIZED) {
+			throw std::system_error(make_error_code(CryptoNote::error::NOT_INITIALIZED));
+		}
+	}
+
+	return core.getBlockByHeight(blockHeight, bc);
+}
+
 uint32_t InProcessNode::getLastKnownBlockHeight() const {
   {
     std::unique_lock<std::mutex> lock(mutex);
@@ -610,36 +633,106 @@ void InProcessNode::getBlocksAsync(const std::vector<uint32_t>& blockHeights, st
 }
 
 std::error_code InProcessNode::doGetBlocks(const std::vector<uint32_t>& blockHeights, std::vector<std::vector<BlockDetails>>& blocks) {
+#ifdef SQ_TEST_TIME
+	clock_t start, t1, t2, t3, t4, t5, finish;
+	double ttime, totalTime;
+	char *buffer = (char*)malloc(sizeof(char*));
+	start = clock();
+	sprintf(buffer, "doGetBlocks(%d) use height start!\n", blockHeights.at(0));
+	//std::cout << buffer << std::endl;
+	//OutputDebugString(buffer);
+	//TRACE("doGetBlocks use height start!\n");
+#endif
+
+#ifdef SQ_TEST_GETBLOCK
+	char *buffer = (char*)malloc(sizeof(char*));
+	sprintf(buffer, "doGetBlocks(%d) use height start!\n", blockHeights.at(0));
+	OutputDebugString(buffer);
+#endif
+
   try {
     uint32_t topHeight = 0;
     Crypto::Hash topHash = boost::value_initialized<Crypto::Hash>();
-    core.get_blockchain_top(topHeight, topHash);
+	core.get_blockchain_top(topHeight, topHash);
+#ifdef SQ_TEST_TIME
+	t1 = clock();
+	totalTime = (double)(t1 - start);
+	sprintf(buffer, "%f(get_blockchain_top)\n", totalTime);
+	//std::cout << buffer << std::endl;
+	//OutputDebugString(buffer);
+	//TRACE("%f(get_blockchain_top)\n", totalTime);
+#endif
     for (const uint32_t& height : blockHeights) {
       if (height > topHeight) {
         return make_error_code(CryptoNote::error::REQUEST_ERROR);
       }
-      Crypto::Hash hash = core.getBlockIdByHeight(height);
+	  Crypto::Hash hash = core.getBlockIdByHeight(height);
+#ifdef SQ_TEST_TIME
+	  t2 = clock();
+	  ttime = (double)(t2 - t1);
+	  totalTime = (double)(t2 - start);
+	  sprintf(buffer, "%f(getBlockIdByHeight), %f(total time)\n", ttime, totalTime);
+	  //std::cout << buffer << std::endl;
+	  //OutputDebugString(buffer);
+	  //TRACE("%f(getBlockIdByHeight), %f(total time)\n", ttime,  totalTime);
+#endif
       Block block;
       if (!core.getBlockByHash(hash, block)) {
         return make_error_code(CryptoNote::error::INTERNAL_NODE_ERROR);
-      }
+	  }
+#ifdef SQ_TEST_TIME
+	  t3 = clock();
+	  ttime = (double)(t3 - t2);
+	  totalTime = (double)(t3 - start);
+	  sprintf(buffer, "%f(getBlockByHash), %f(total time)\n", ttime, totalTime);
+	  //std::cout << buffer << std::endl;
+	 // OutputDebugString(buffer);
+	  //TRACE("%f(getBlockByHash), %f(total time)\n", ttime, totalTime);
+#endif
       BlockDetails blockDetails;
       if (!blockchainExplorerDataBuilder.fillBlockDetails(block, blockDetails)) {
         return make_error_code(CryptoNote::error::INTERNAL_NODE_ERROR);
-      }
+	  }
+#ifdef SQ_TEST_TIME
+	  t4 = clock();
+	  ttime = (double)(t4 - t3);
+	  totalTime = (double)(t4 - start);
+	  sprintf(buffer, "%f(fillBlockDetails), %f(total time)\n", ttime, totalTime);
+	  //std::cout << buffer << std::endl;
+	  //OutputDebugString(buffer);
+	  //TRACE("%f(fillBlockDetails), %f(total time)\n", ttime, totalTime);
+#endif
       std::vector<BlockDetails> blocksOnSameHeight;
       blocksOnSameHeight.push_back(std::move(blockDetails));
 
       //Getting orphans
       std::vector<Block> orphanBlocks;
-      core.getOrphanBlocksByHeight(height, orphanBlocks);
+	  core.getOrphanBlocksByHeight(height, orphanBlocks);
+#ifdef SQ_TEST_TIME
+	  t4 = clock();
+	  ttime = (double)(t4 - t3);
+	  totalTime = (double)(t4 - start);
+	  sprintf(buffer, "%f(getOrphanBlocksByHeight), %f(total time)\n", ttime, totalTime);
+	  //std::cout << buffer << std::endl;
+	 // OutputDebugString(buffer);
+	 // TRACE("%f(getOrphanBlocksByHeight), %f(total time)\n", ttime, totalTime);
+#endif
       for (const Block& orphanBlock : orphanBlocks) {
         BlockDetails orphanBlockDetails;
         if (!blockchainExplorerDataBuilder.fillBlockDetails(orphanBlock, orphanBlockDetails)) {
           return make_error_code(CryptoNote::error::INTERNAL_NODE_ERROR);
         }
         blocksOnSameHeight.push_back(std::move(orphanBlockDetails));
-      }
+	  }
+#ifdef SQ_TEST_TIME
+	  t5 = clock();
+	  ttime = (double)(t5 - t4);
+	  totalTime = (double)(t5 - start);
+	  sprintf(buffer, "%f(fillBlockDetails), %f(total time)\n", ttime, totalTime);
+	  //std::cout << buffer << std::endl;
+	  //OutputDebugString(buffer);
+	 // TRACE("%f(fillBlockDetails), %f(total time)\n", ttime, totalTime);
+#endif
       blocks.push_back(std::move(blocksOnSameHeight));
     }
   } catch (std::system_error& e) {
@@ -648,6 +741,14 @@ std::error_code InProcessNode::doGetBlocks(const std::vector<uint32_t>& blockHei
     return make_error_code(CryptoNote::error::INTERNAL_NODE_ERROR);
   }
 
+#ifdef SQ_TEST_TIME
+  finish = clock();
+  totalTime = (double)(finish - start);
+  sprintf(buffer, "%f(total time)\n", totalTime);
+  //std::cout << buffer << std::endl;
+  //OutputDebugString(buffer);
+  //TRACE("%f(total time)\n", totalTime);
+#endif
   return std::error_code();
 }
 
@@ -913,6 +1014,35 @@ std::error_code InProcessNode::doGetPoolTransactions(uint64_t timestampBegin, ui
   }
   return std::error_code();
 }
+
+#if SQ_GET_POOL_TEST
+std::error_code InProcessNode::GetPoolTransactions(std::vector<TransactionDetails>& transactions)
+{
+	try
+	{
+		std::vector<Transaction> rawTransactions;
+		rawTransactions = core.getPoolTransactions();
+		for (const Transaction& rawTransaction : rawTransactions)
+		{
+			TransactionDetails transactionDetails;
+			if (!blockchainExplorerDataBuilder.fillTransactionDetails(rawTransaction, transactionDetails))
+			{
+				return make_error_code(CryptoNote::error::INTERNAL_NODE_ERROR);
+			}
+			transactions.push_back(std::move(transactionDetails));
+		}
+	}
+	catch (std::system_error& e)
+	{
+		return e.code();
+	}
+	catch (std::exception&)
+	{
+		return make_error_code(CryptoNote::error::INTERNAL_NODE_ERROR);
+	}
+	return std::error_code();
+}
+#endif
 
 void InProcessNode::getTransactionsByPaymentId(const Crypto::Hash& paymentId, std::vector<TransactionDetails>& transactions, const Callback& callback) {
   std::unique_lock<std::mutex> lock(mutex);
