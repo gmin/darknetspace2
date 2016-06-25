@@ -598,6 +598,8 @@ bool simple_wallet::set_log(const std::vector<std::string> &args) {
 bool simple_wallet::init(const boost::program_options::variables_map& vm) {
   handle_command_line(vm);
 
+  m_wallet_version = 2;
+
   if (!m_daemon_address.empty() && (!m_daemon_host.empty() || 0 != m_daemon_port)) {
     fail_msg_writer() << "you can't specify daemon host or port several times";
     return false;
@@ -625,13 +627,6 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm) {
 
 	std::string userInput;
 
-	//do {
-	//	std::cout << "Old wallet file name: ";
-	//	std::getline(std::cin, userInput);
-	//	boost::algorithm::trim(userInput);
-	//} while (userInput.empty());
-
-	m_wallet_version = 2;
 	if (c == 'c' || c == 'C') {
 		m_wallet_version = 1;
 		std::cout << "Specify old wallet file name (e.g., dnc.keys).\n";

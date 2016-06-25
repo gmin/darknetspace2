@@ -34,6 +34,7 @@ const uint64_t COIN                                          = UINT64_C(10000000
 const uint64_t MINIMUM_FEE                                   = UINT64_C(100000);     // pow(10, 5)
 const uint64_t DEFAULT_DUST_THRESHOLD                        = UINT64_C(100000);     // pow(10, 5)
 
+const uint64_t DIFFICULTY_TARGET = 240; // seconds
 const uint64_t EXPECTED_NUMBER_OF_BLOCKS_PER_DAY             = 24 * 60 * 60 / DIFFICULTY_TARGET;
 const size_t   DIFFICULTY_WINDOW                             = 240; // blocks
 const size_t   DIFFICULTY_CUT                                = 30;  // timestamps to cut after sorting
@@ -121,13 +122,11 @@ const size_t   P2P_DEFAULT_HANDSHAKE_INVOKE_TIMEOUT          = 5000;          //
 const char     P2P_STAT_TRUSTED_PUB_KEY[]                    = "44165823f0e1257378eb045f9ba9e0beab580cfd3c35bc2b1dd1b5054eca46d4";
 
 const std::initializer_list<const char*> SEED_NODES = {
-//  "seed.darknetspace.org:38808",
 	"139.196.154.108:38808",
 	"121.40.148.89:38808",
 	"182.92.201.174:38808",
 	"139.129.59.182:38808",
 	"120.76.162.184:38808"
-
 };
 
 struct CheckpointData {
